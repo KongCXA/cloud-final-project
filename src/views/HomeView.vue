@@ -1,6 +1,6 @@
 <template>
   <main
-    class="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden h-screen"
+    class="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden h-screen bg-white"
   >
     <div
       class="transition-all duration-500"
