@@ -2,15 +2,18 @@
   <main
     class="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden h-screen"
   >
-    <div class="transition-all duration-500" :class="{ 'pr-80': isSidebarOpen }">
+    <div
+      class="transition-all duration-500"
+      :class="{ 'pr-80': isSidebarOpen }"
+    >
       <VoiceRecord />
     </div>
 
     <button
-      @click="isSidebarOpen = !isSidebarOpen"
+      @click="toggleSidebar"
       class="fixed right-6 bottom-6 w-20 h-20 bg-black shadow-xl rounded-full flex items-center justify-center text-white z-50 border cursor-pointer hover:scale-105 transition-transform"
     >
-      <span>{{ isSidebarOpen ? 'close' : 'history' }}</span>
+      <span>{{ isSidebarOpen ? "close" : "history" }}</span>
     </button>
 
     <Transition name="slide">
@@ -18,9 +21,14 @@
         v-if="isSidebarOpen"
         class="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl border-l border-slate-100 z-40 flex flex-col"
       >
-        <div class="p-6 border-b border-slate-50 flex justify-between items-center">
-          <h2 class="font-bold tracking-tight text-slate-800">Recent Reflections</h2>
-          <span class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold uppercase"
+        <div
+          class="p-6 border-b border-slate-50 flex justify-between items-center"
+        >
+          <h2 class="font-bold tracking-tight text-slate-800">
+            Recent Reflections
+          </h2>
+          <span
+            class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold uppercase"
             >History</span
           >
         </div>
@@ -33,9 +41,11 @@
             class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group"
           >
             <div class="flex justify-between items-center mb-2">
-              <span class="text-[10px] font-medium text-slate-400">{{ item.time }}</span>
+              <span class="text-[10px] font-medium text-slate-400">{{
+                item.time
+              }}</span>
               <span
-                :class="item.color"
+                :class="getSentimentStyle(item.sentiment)"
                 class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter border"
               >
                 {{ item.sentiment }}
@@ -53,12 +63,22 @@
               <span
                 class="text-[9px] text-indigo-400 font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                {{ expandedId === item.id ? 'Show Less' : 'Click to Read More' }}
+                {{
+                  expandedId === item.id ? "Show Less" : "Click to Read More"
+                }}
               </span>
             </div>
           </div>
 
-          <div v-if="recentTranscripts.length === 0" class="text-center py-10">
+          <div v-if="loading" class="text-center py-10">
+            <p class="text-xs animate-pulse text-slate-400">
+              Fetching your peace...
+            </p>
+          </div>
+          <div
+            v-else-if="recentTranscripts.length === 0"
+            class="text-center py-10"
+          >
             <p class="text-xs italic text-slate-400">No reflections yet...</p>
           </div>
         </div>
@@ -74,40 +94,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import VoiceRecord from '@/components/VoiceRecord.vue'
+import { ref } from "vue";
+import VoiceRecord from "@/components/VoiceRecord.vue";
 
-const isSidebarOpen = ref(false)
-const expandedId = ref<number | null>(null) // เก็บ ID ของกล่องที่กำลังเปิด
+const isSidebarOpen = ref(false);
+const loading = ref(false);
+const expandedId = ref<string | null>(null); // OpenSearch ID มักเป็น String
+const recentTranscripts = ref<any[]>([]);
 
-const toggleExpand = (id: number) => {
-  // ถ้ากดตัวเดิมให้ปิด ถ้ากดตัวใหม่ให้เปิดตัวใหม่
-  expandedId.value = expandedId.value === id ? null : id
-}
+const getSentimentStyle = (sentiment: string) => {
+  const s = sentiment?.toUpperCase();
+  if (s === "POSITIVE") return "border-green-100 bg-green-50 text-green-600";
+  if (s === "NEGATIVE") return "border-red-100 bg-red-50 text-red-600";
+  return "border-slate-100 bg-slate-50 text-slate-600";
+};
 
-const recentTranscripts = ref([
-  {
-    id: 1,
-    time: '10:30 AM',
-    text: "I'm feeling a bit overwhelmed with work today, but I'll try to focus on one thing at a time. The cloud project is moving forward, but there are so many components to manage like S3, Transcribe, and Lambda. I need to remember that peace starts with a single breath.",
-    sentiment: 'Negative',
-    color: 'border-red-100 bg-red-50 text-red-600',
-  },
-  {
-    id: 2,
-    time: 'Yesterday',
-    text: 'Had a great morning exercise. It really helped me start the day with a clear mind. Running in the park during sunrise is the best therapy.',
-    sentiment: 'Positive',
-    color: 'border-green-100 bg-green-50 text-green-600',
-  },
-  {
-    id: 3,
-    time: '2 days ago',
-    text: 'Normal day at the office. Nothing much happened, just finished some routine tasks.',
-    sentiment: 'Neutral',
-    color: 'border-slate-100 bg-slate-50 text-slate-600',
-  },
-])
+// ฟังก์ชันดึงข้อมูลจาก API Gateway
+const fetchHistory = async () => {
+  const apiUrl = import.meta.env.VITE_API_HISTORY_URL;
+  if (!apiUrl) return;
+
+  loading.value = true;
+  try {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+
+    // แปลงรูปแบบข้อมูลจาก OpenSearch (hits.hits) ให้เข้ากับหน้าเว็บ
+    // สมมติว่า Lambda คืนค่ามาเป็น list ของ _source
+    recentTranscripts.value = data.map((item: any) => ({
+      id: item._id || Math.random().toString(),
+      time: new Date(item._source.timestamp).toLocaleString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+        day: "numeric",
+        month: "short",
+      }),
+      text: item._source.transcript,
+      sentiment: item._source.sentiment || "NEUTRAL",
+    }));
+  } catch (error) {
+    console.error("Error fetching history:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value;
+  if (isSidebarOpen.value) {
+    fetchHistory();
+  }
+};
+
+const toggleExpand = (id: string) => {
+  expandedId.value = expandedId.value === id ? null : id;
+};
 </script>
 
 <style scoped>
