@@ -8,8 +8,8 @@ import HeaderContent from './components/HeaderContent.vue'
       <HeaderContent />
 
       <div class="flex gap-[10px]">
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
+        <RouterLink to="/"><p class="text-black">Home</p></RouterLink>
+        <RouterLink to="/dashboard"><p class="text-black">Dashboard</p></RouterLink>
       </div class="flex gap-[10px]">
     </div>
 
