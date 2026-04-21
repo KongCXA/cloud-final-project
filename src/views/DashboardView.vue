@@ -306,6 +306,7 @@ const getStatusClass = (sentiment) => {
   const s = sentiment?.toUpperCase();
   if (s === "POSITIVE") return "bg-green-100 text-green-600";
   if (s === "NEGATIVE") return "bg-red-100 text-red-600";
+  if (s === "MIXED") return "bg-orange-100 text-orange-600";
   return "bg-slate-100 text-slate-600";
 };
 
@@ -315,10 +316,11 @@ const sentimentData = computed(() => {
       { label: "Positive", value: 0, barColor: "bg-green-500" },
       { label: "Neutral", value: 0, barColor: "bg-slate-400" },
       { label: "Negative", value: 0, barColor: "bg-red-500" },
+      { label: "Mixed", value: 0, barColor: "bg-orange-400" },
     ];
 
   const total = history.value.length;
-  const counts = { POSITIVE: 0, NEGATIVE: 0, NEUTRAL: 0 };
+  const counts = { POSITIVE: 0, NEGATIVE: 0, NEUTRAL: 0, MIXED: 0 };
 
   history.value.forEach((item) => {
     const s = item.sentiment.toUpperCase();
@@ -340,6 +342,11 @@ const sentimentData = computed(() => {
       label: "Negative",
       value: Math.round((counts.NEGATIVE / total) * 100),
       barColor: "bg-red-500",
+    },
+    {
+      label: "Mixed",
+      value: Math.round((counts.MIXED / total) * 100),
+      barColor: "bg-orange-400",
     },
   ];
 });
@@ -370,6 +377,7 @@ const stats = computed(() => {
     },
   ];
 });
+
 const triggerPieData = computed(() => {
   const currentSentiments = sentimentData.value;
   const totalPercentage = currentSentiments.reduce(
@@ -389,6 +397,7 @@ const triggerPieData = computed(() => {
     let strokeColor = "stroke-slate-400";
     if (item.label === "Positive") strokeColor = "stroke-green-500";
     if (item.label === "Negative") strokeColor = "stroke-red-500";
+    if (item.label === "Mixed") strokeColor = "stroke-orange-400";
 
     return {
       label: item.label,
