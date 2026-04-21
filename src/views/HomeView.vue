@@ -118,7 +118,7 @@ const fetchHistory = async () => {
   try {
     const response = await fetch(apiUrl);
     const data = await response.json();
-
+    console.log(data);
     recentTranscripts.value = data.map((item: any) => ({
       id: item._id || Math.random().toString(),
       time: new Date(item._source.timestamp).toLocaleString("en-US", {
