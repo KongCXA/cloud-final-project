@@ -3,11 +3,71 @@
     class="flex-1 flex items-center justify-center p-8 md:pt-40 pt-50 bg-white"
   >
     <div class="flex-1 mx-auto grid gap-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8">
+        <div
+          class="col-span-1 md:col-span-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between"
+        >
+          <div class="flex justify-between items-center pb-2">
+            <p class="text-slate-500 text-sm font-medium">Dashboard Filter</p>
+          </div>
+
+          <div
+            class="flex flex-col md:flex-row md:flex-wrap lg:flex-nowrap justify-between items-center gap-4"
+          >
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <input
+                type="date"
+                v-model="startDate"
+                class="flex-1 text-[11px] border border-slate-300 rounded-xl px-3 py-2 outline-none text-slate-600 font-medium cursor-pointer"
+              />
+              <div class="relative">
+                <select
+                  v-model="startTime"
+                  class="w-[85px] text-[11px] border border-slate-300 rounded-xl px-3 py-2 outline-none text-slate-600 font-medium appearance-none cursor-pointer bg-white"
+                >
+                  <option value="">Start Time</option>
+                  <option
+                    v-for="t in timeOptions"
+                    :key="t.value"
+                    :value="t.value"
+                  >
+                    {{ t.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <p class="text-slate-400 font-bold text-[10px]">TO</p>
+
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <input
+                type="date"
+                v-model="endDate"
+                class="flex-1 text-[11px] border border-slate-300 rounded-xl px-3 py-2 outline-none text-slate-600 font-medium cursor-pointer"
+              />
+
+              <div class="relative">
+                <select
+                  v-model="endTime"
+                  class="w-[85px] text-[11px] border border-slate-300 rounded-xl px-3 py-2 outline-none text-slate-600 font-medium appearance-none cursor-pointer bg-white"
+                >
+                  <option value="">End Time</option>
+                  <option
+                    v-for="t in timeOptions"
+                    :key="t.value"
+                    :value="t.value"
+                  >
+                    {{ t.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
         <div
           v-for="stat in stats"
           :key="stat.label"
-          class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"
+          class="col-span-1 md:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100"
         >
           <p class="text-slate-500 text-sm font-medium">{{ stat.label }}</p>
           <h3 class="text-2xl font-bold mt-1 text-black">
@@ -114,9 +174,7 @@
                 class="absolute inset-0 flex flex-col items-center justify-center text-center"
               >
                 <span class="text-3xl font-black text-slate-800">
-                  {{
-                    selectedSentiment ? filteredHistory.length : history.length
-                  }}
+                  {{ filteredHistory.length }}
                 </span>
                 <span
                   class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter"
@@ -154,7 +212,7 @@
         <div
           class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100"
         >
-          <h3 class="text-lg font-bold mb-6 text-black">
+          <h3 class="text-lg font-bold text-black pb-6">
             Recent Journal Entries
           </h3>
           <div class="overflow-x-auto">
@@ -272,6 +330,27 @@ const itemsPerPage = 10;
 
 const history = ref([]);
 
+const startDate = ref("");
+const endDate = ref("");
+
+const startTime = ref("");
+const endTime = ref("");
+
+const timeOptions = computed(() => {
+  const options = [];
+  for (let i = 0; i < 24; i++) {
+    const hour = i === 0 ? 12 : i > 12 ? i - 12 : i;
+    const ampm = i < 12 ? "AM" : "PM";
+    const timeValue = `${i.toString().padStart(2, "0")}:00`;
+    options.push({
+      label: `${hour} ${ampm}`,
+      value: timeValue,
+    });
+  }
+  // จัดเรียงให้เริ่มจาก 1 AM ตามที่คุณต้องการ
+  return [...options.slice(1), options[0]];
+});
+
 const fetchDashboardData = async () => {
   const apiUrl = import.meta.env.VITE_API_HISTORY_URL;
   if (!apiUrl) return;
@@ -283,6 +362,7 @@ const fetchDashboardData = async () => {
 
     history.value = data.map((item) => ({
       id: item._id,
+      rawTimestamp: item._source.timestamp,
       date: new Date(item._source.timestamp).toLocaleString("en-US", {
         month: "short",
         day: "numeric",
@@ -311,7 +391,9 @@ const getStatusClass = (sentiment) => {
 };
 
 const sentimentData = computed(() => {
-  if (history.value.length === 0)
+  const dataToCalculate = filteredHistory.value;
+
+  if (dataToCalculate.length === 0)
     return [
       { label: "Positive", value: 0, barColor: "bg-green-500" },
       { label: "Neutral", value: 0, barColor: "bg-slate-400" },
@@ -319,10 +401,10 @@ const sentimentData = computed(() => {
       { label: "Mixed", value: 0, barColor: "bg-orange-400" },
     ];
 
-  const total = history.value.length;
+  const total = dataToCalculate.length;
   const counts = { POSITIVE: 0, NEGATIVE: 0, NEUTRAL: 0, MIXED: 0 };
 
-  history.value.forEach((item) => {
+  dataToCalculate.forEach((item) => {
     const s = item.sentiment.toUpperCase();
     if (counts.hasOwnProperty(s)) counts[s]++;
   });
@@ -352,9 +434,11 @@ const sentimentData = computed(() => {
 });
 
 const stats = computed(() => {
-  const maxValue = Math.max(...sentimentData.value.map((s) => s.value));
+  const dataToCalculate = filteredHistory.value;
+  const currentSentiments = sentimentData.value;
+  const maxValue = Math.max(...currentSentiments.map((s) => s.value));
 
-  const topSentiments = sentimentData.value
+  const topSentiments = currentSentiments
     .filter((s) => s.value === maxValue && s.value > 0)
     .map((s) => s.label);
 
@@ -365,14 +449,14 @@ const stats = computed(() => {
 
   return [
     {
-      label: "Total Recordings",
-      value: `${history.value.length} Entries`,
+      label: "Recordings in Period",
+      value: `${dataToCalculate.length} Entries`,
       trendColor: "text-indigo-600",
     },
     {
-      label: "Most Frequent Emotion",
+      label: "Frequent Emotion",
       subLabel: topSentiments.length > 1 ? "Multiple Detected" : "Stable",
-      value: history.value.length > 0 ? frequentEmotionLabel : "N/A",
+      value: dataToCalculate.length > 0 ? frequentEmotionLabel : "N/A",
       trendColor: "text-slate-500",
     },
   ];
@@ -410,11 +494,41 @@ const triggerPieData = computed(() => {
 });
 
 const filteredHistory = computed(() => {
-  if (!selectedSentiment.value) return history.value;
-  return history.value.filter(
-    (item) =>
-      item.sentiment.toUpperCase() === selectedSentiment.value.toUpperCase(),
-  );
+  return history.value.filter((item) => {
+    const matchesSentiment = selectedSentiment.value
+      ? item.sentiment.toUpperCase() === selectedSentiment.value.toUpperCase()
+      : true;
+
+    const itemDate = new Date(item.rawTimestamp);
+
+    let startLimit = null;
+    if (startDate.value) {
+      startLimit = new Date(startDate.value);
+      if (startTime.value) {
+        const [h, m] = startTime.value.split(":").map(Number);
+        startLimit.setHours(h, m, 0, 0);
+      } else {
+        startLimit.setHours(0, 0, 0, 0);
+      }
+    }
+
+    let endLimit = null;
+    if (endDate.value) {
+      endLimit = new Date(endDate.value);
+      if (endTime.value) {
+        const [h, m] = endTime.value.split(":").map(Number);
+        endLimit.setHours(h, m, 59, 999);
+      } else {
+        endLimit.setHours(23, 59, 59, 999);
+      }
+    }
+
+    const matchesRange =
+      (!startLimit || itemDate >= startLimit) &&
+      (!endLimit || itemDate <= endLimit);
+
+    return matchesSentiment && matchesRange;
+  });
 });
 
 const paginatedHistory = computed(() => {
@@ -450,6 +564,14 @@ watch(isExpanded, (val) => {
 });
 
 watch(selectedSentiment, () => {
+  currentPage.value = 1;
+});
+
+watch([startDate, endDate], () => {
+  currentPage.value = 1;
+});
+
+watch([startTime, endTime], () => {
   currentPage.value = 1;
 });
 </script>
