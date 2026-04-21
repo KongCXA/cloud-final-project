@@ -99,17 +99,17 @@ import VoiceRecord from "@/components/VoiceRecord.vue";
 
 const isSidebarOpen = ref(false);
 const loading = ref(false);
-const expandedId = ref<string | null>(null); // OpenSearch ID มักเป็น String
+const expandedId = ref<string | null>(null);
 const recentTranscripts = ref<any[]>([]);
 
 const getSentimentStyle = (sentiment: string) => {
   const s = sentiment?.toUpperCase();
   if (s === "POSITIVE") return "border-green-100 bg-green-50 text-green-600";
   if (s === "NEGATIVE") return "border-red-100 bg-red-50 text-red-600";
+  if (s === "MIXED") return "border-orange-100 bg-orange-50 text-orange-600";
   return "border-slate-100 bg-slate-50 text-slate-600";
 };
 
-// ฟังก์ชันดึงข้อมูลจาก API Gateway
 const fetchHistory = async () => {
   const apiUrl = import.meta.env.VITE_API_HISTORY_URL;
   if (!apiUrl) return;
@@ -119,8 +119,6 @@ const fetchHistory = async () => {
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    // แปลงรูปแบบข้อมูลจาก OpenSearch (hits.hits) ให้เข้ากับหน้าเว็บ
-    // สมมติว่า Lambda คืนค่ามาเป็น list ของ _source
     recentTranscripts.value = data.map((item: any) => ({
       id: item._id || Math.random().toString(),
       time: new Date(item._source.timestamp).toLocaleString("en-US", {
@@ -153,7 +151,6 @@ const toggleExpand = (id: string) => {
 </script>
 
 <style scoped>
-/* ใช้ Tailwind line-clamp (มีมาให้ใน Tailwind v3+) */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -161,7 +158,6 @@ const toggleExpand = (id: string) => {
   overflow: hidden;
 }
 
-/* Animation อื่นๆ คงเดิม */
 .slide-enter-active,
 .slide-leave-active {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
