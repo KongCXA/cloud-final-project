@@ -10,7 +10,7 @@
           class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"
         >
           <p class="text-slate-500 text-sm font-medium">{{ stat.label }}</p>
-          <h3 class="text-2xl font-bold mt-1">
+          <h3 class="text-2xl font-bold mt-1 text-black">
             {{ stat.value }}
           </h3>
           <p
@@ -154,7 +154,9 @@
         <div
           class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100"
         >
-          <h3 class="text-lg font-bold mb-6">Recent Journal Entries</h3>
+          <h3 class="text-lg font-bold mb-6 text-black">
+            Recent Journal Entries
+          </h3>
           <div class="overflow-x-auto">
             <table class="w-full text-left min-w-[600px]">
               <thead>
